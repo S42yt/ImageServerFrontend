@@ -24,7 +24,7 @@ export default async function Home({ searchParams }: PageProps) {
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="max-w-6xl mx-auto">
         <header className="mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">ServerImages Library</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Image Library</h1>
           <p className="text-gray-600">A simple image hosting library using the ServerImages backend</p>
         </header>
 
@@ -40,7 +40,12 @@ export default async function Home({ searchParams }: PageProps) {
         </section>
 
         <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
-          <p>ServerImages - Self-hosted image CDN - {new Date().getFullYear()}</p>
+          <p>ServerImages - A simple image hosting library using the ServerImages backend - &copy; Musa/S42 {new Date().getFullYear()}</p>
+          <p className='hover:underline text-blue-500 cursor-pointer'>
+            <a href="https://github.com/S42yt/ServerImages" target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+          </p>
         </footer>
       </div>
     </main>
