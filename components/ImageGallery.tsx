@@ -235,15 +235,7 @@ export default function ImageGallery({ preloadedImages = [], sharedImageId, refr
                   <p><strong>Uploaded:</strong> {formatDate(selectedImage.uploaded_at)}</p>
                 </div>
                 <div>
-                  <p><strong>Direct URL:</strong></p>
-                  <input
-                    type="text"
-                    readOnly
-                    value={selectedImage.url}
-                    className="w-full p-2 border border-gray-300 rounded mt-1"
-                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                  />
-                  <p className="mt-2"><strong>Shareable Link:</strong></p>
+                  <p className="mt-2"><strong>Link:</strong></p>
                   <input
                     type="text"
                     readOnly
@@ -256,21 +248,12 @@ export default function ImageGallery({ preloadedImages = [], sharedImageId, refr
               <div className="mt-4 flex justify-end gap-2">
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(selectedImage.url);
-                    toast.success('Direct URL copied to clipboard');
-                  }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-700 transition"
-                >
-                  Copy URL
-                </button>
-                <button
-                  onClick={() => {
                     navigator.clipboard.writeText(api.getShareableLink(selectedImage.id));
                     toast.success('Shareable link copied to clipboard');
                   }}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition"
                 >
-                  Copy Share Link
+                  Copy  Link
                 </button>
                 <button
                   onClick={(e) => {
