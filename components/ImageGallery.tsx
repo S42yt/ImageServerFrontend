@@ -18,11 +18,13 @@ export default function ImageGallery({
   refreshTrigger = 0,
 }: ImageGalleryProps) {
   const [images, setImages] = useState<ImageItem[]>(preloadedImages);
+  const [filteredImages, setFilteredImages] = useState<ImageItem[]>(preloadedImages);
   const [loading, setLoading] = useState<boolean>(!preloadedImages.length);
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [debugMode, setDebugMode] = useState<boolean>(false);
+  const [showOnlyMine, setShowOnlyMine] = useState<boolean>(false);
   const router = useRouter();
   const imageRefs = useRef<Record<string, HTMLImageElement>>({});
 
@@ -51,6 +53,15 @@ export default function ImageGallery({
 
     fetchSession();
   }, [refreshTrigger]);
+
+  useEffect(() => {
+    // Apply the filter whenever showOnlyMine changes or images update
+    if (showOnlyMine && currentSessionId) {
+      setFilteredImages(images.filter(img => img.sessionId === currentSessionId));
+    } else {
+      setFilteredImages(images);
+    }
+  }, [showOnlyMine, images, currentSessionId]);
 
   const handleImageError = (imageId: string) => {
     console.error(`Failed to load image: ${imageId}`);
@@ -138,8 +149,8 @@ export default function ImageGallery({
   }, [refreshTrigger, preloadedImages]);
 
   useEffect(() => {
-    if (images.length > 0) {
-      images.forEach((image) => {
+    if (filteredImages.length > 0) {
+      filteredImages.forEach((image) => {
         const imgRef = imageRefs.current[image.id];
         if (imgRef && !imageErrors[image.id]) {
           imgRef.src = api.getProxiedImageUrl(image.id);
@@ -147,7 +158,7 @@ export default function ImageGallery({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [images, imageErrors]);
+  }, [filteredImages, imageErrors]);
 
   const handleViewImage = useCallback(
     async (image: ImageItem) => {
@@ -212,6 +223,10 @@ export default function ImageGallery({
     setDebugMode(!debugMode);
   };
 
+  const toggleMyImagesFilter = () => {
+    setShowOnlyMine(!showOnlyMine);
+  };
+
   if (loading) {
     return <div className="text-center py-10">Loading images...</div>;
   }
@@ -230,12 +245,39 @@ export default function ImageGallery({
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Images</h2>
-        <button
-          onClick={toggleDebugMode}
-          className="text-xs text-gray-500 underline"
-        >
-          {debugMode ? "Hide Debug Info" : "Show Debug Info"}
-        </button>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center">
+            <label htmlFor="my-images-switch" className="mr-2 text-sm">
+              Only show my images
+            </label>
+            <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+              <input
+                id="my-images-switch"
+                type="checkbox"
+                checked={showOnlyMine}
+                onChange={toggleMyImagesFilter}
+                className="sr-only"
+              />
+              <div 
+                onClick={toggleMyImagesFilter}
+                className={`toggle-bg block h-6 rounded-full w-10 cursor-pointer ${
+                  showOnlyMine ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              ></div>
+              <div 
+                className={`toggle-dot absolute w-4 h-4 bg-white rounded-full shadow inset-y-0 left-0 m-1 transition-transform duration-200 ease-in ${
+                  showOnlyMine ? 'transform translate-x-4' : ''
+                }`}
+              ></div>
+            </div>
+          </div>
+          <button
+            onClick={toggleDebugMode}
+            className="text-xs text-gray-500 underline"
+          >
+            {debugMode ? "Hide Debug Info" : "Show Debug Info"}
+          </button>
+        </div>
       </div>
 
       {debugMode && (
@@ -248,8 +290,12 @@ export default function ImageGallery({
             <strong>Total Images:</strong> {images.length}
           </p>
           <p>
-            <strong>Images:</strong>{" "}
+            <strong>Your Images:</strong>{" "}
             {images.filter((img) => img.sessionId === currentSessionId).length}
+          </p>
+          <p>
+            <strong>Filter Status:</strong>{" "}
+            {showOnlyMine ? "Showing only your images" : "Showing all images"}
           </p>
           <div className="mt-2">
             <button
@@ -266,8 +312,16 @@ export default function ImageGallery({
         </div>
       )}
 
+      {filteredImages.length === 0 && showOnlyMine && (
+        <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg mb-4">
+          <p className="text-gray-500">
+            You haven't uploaded any images yet.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {images.map((image) => (
+        {filteredImages.map((image) => (
           <div
             key={image.id}
             className="bg-white rounded-lg shadow overflow-hidden transition-transform hover:scale-105 cursor-pointer"

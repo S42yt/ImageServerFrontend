@@ -212,7 +212,7 @@ export const api = {
       const baseUrl =
         typeof window !== "undefined" ? window.location.origin : "";
       const response = await fetch(`${baseUrl}/api/image/${imageId}/view`, {
-        method: "POST",
+        method: "GET",
       });
 
       const data = await response.json();

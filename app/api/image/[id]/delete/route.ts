@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canDeleteImage } from "@/lib/server-api";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,11 @@ export async function DELETE(
     
     // Get session ID from header or cookie
     let sessionId = request.headers.get("X-Session-ID");
+    if (!sessionId) {
+      const cookieValue = cookies().get("session_id")?.value;
+      sessionId = cookieValue || null;
+    }
+
     if (!sessionId) {
       return NextResponse.json(
         { error: "No session ID provided" },
