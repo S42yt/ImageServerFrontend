@@ -192,8 +192,7 @@ function hashIpAddress(ip: string): string {
 export async function getImages(): Promise<ImageItem[]> {
   try {
     const response = await fetch(`${API_URL}/images`, {
-      next: { revalidate: 10 },
-      cache: "no-store",
+      next: { revalidate: 10 }
     });
 
     if (!response.ok) {
