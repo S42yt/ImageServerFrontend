@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// Get the API URL from environment variables with fallback for client environment
+// Client-side code will use proxied API routes instead of direct access to server
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5200";
 
 export interface ImageItem {
@@ -13,6 +13,19 @@ export interface ImageItem {
 }
 
 const ensureCorrectUrl = (url: string) => {
+  // For client-side rendering, always use proxied URLs
+  if (typeof window !== "undefined") {
+    const baseUrl = window.location.origin;
+    if (url.includes("/cdn/")) {
+      // Extract image ID from URL
+      const idMatch = url.match(/\/cdn\/([^\/]+)/);
+      if (idMatch && idMatch[1]) {
+        return `${baseUrl}/api/image/${idMatch[1]}`;
+      }
+    }
+  }
+
+  // For server-side rendering, maintain original URL structure
   if (url.startsWith("http")) {
     return url;
   }
@@ -53,27 +66,26 @@ export const api = {
     // Get session ID before uploading
     const sessionId = await api.getSession();
 
+    // Use server-side proxy for upload
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const formData = new FormData();
     formData.append("file", file);
     formData.append("cf-turnstile-response", turnstileToken);
-    formData.append("sessionId", sessionId); // Include session ID with upload
+    formData.append("sessionId", sessionId);
 
-    const response = await axios.post(`${API_URL}/upload`, formData, {
+    const response = await axios.post(`${baseUrl}/api/upload`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      withCredentials: true, // Send cookies
+      withCredentials: true,
     });
 
     if (response.data && response.data.url) {
       response.data.url = ensureCorrectUrl(response.data.url);
-      // Store the session ID with the image data
       response.data.sessionId = sessionId;
 
       // Register the image ownership in our system
       try {
-        const baseUrl =
-          typeof window !== "undefined" ? window.location.origin : "";
         await fetch(`${baseUrl}/api/image/${response.data.id}`, {
           method: "PUT",
           headers: {
@@ -97,21 +109,21 @@ export const api = {
     // Get session ID before uploading
     const sessionId = await api.getSession();
 
-    const response = await axios.post(`${API_URL}/upload`, {
+    // Use server-side proxy for upload
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+
+    const response = await axios.post(`${baseUrl}/api/upload`, {
       base64: base64Data,
       "cf-turnstile-response": turnstileToken,
-      sessionId, // Include session ID with upload
+      sessionId,
     });
 
     if (response.data && response.data.url) {
       response.data.url = ensureCorrectUrl(response.data.url);
-      // Store the session ID with the image data
       response.data.sessionId = sessionId;
 
       // Register the image ownership in our system
       try {
-        const baseUrl =
-          typeof window !== "undefined" ? window.location.origin : "";
         await fetch(`${baseUrl}/api/image/${response.data.id}`, {
           method: "PUT",
           headers: {
@@ -131,8 +143,10 @@ export const api = {
   getAllImages: async (): Promise<ImageItem[]> => {
     try {
       const sessionId = await api.getSession();
-      const response = await axios.get(`${API_URL}/images`);
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
+      // Use server-side proxy for getting images
+      const response = await axios.get(`${baseUrl}/api/images`);
       const images = Array.isArray(response.data) ? response.data : [];
 
       return images.map((img) => ({
@@ -154,8 +168,8 @@ export const api = {
         throw new Error("You don't have permission to delete this image");
       }
 
-      await axios.delete(`${API_URL}/cdn/${imageId}`, {
-        withCredentials: true,
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+      await axios.delete(`${baseUrl}/api/image/${imageId}/delete`, {
         headers: {
           "X-Session-ID": sessionId,
         },

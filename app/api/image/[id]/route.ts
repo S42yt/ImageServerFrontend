@@ -11,7 +11,14 @@ export async function GET(
 ) {
   try {
     const imageId = params.id;
+    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
 
+    if (!apiUrl) {
+      console.error("API URL not configured");
+      return new NextResponse("API URL not configured", { status: 500 });
+    }
+
+    // Get image data from server-side API
     const imageData = await getImageById(imageId);
 
     if (!imageData) {
@@ -19,14 +26,20 @@ export async function GET(
     }
 
     try {
-      fetch(`/api/image/${imageId}/view`, { method: "POST" }).catch((err) => {
+      // Record view asynchronously
+      const baseUrl = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+      const protocol = baseUrl.includes("localhost") ? "http" : "https";
+      fetch(`${protocol}://${baseUrl}/api/image/${imageId}/view`, { 
+        method: "GET"  // Changed from POST to GET to match the route implementation
+      }).catch((err) => {
         console.error("Failed to record view:", err);
       });
     } catch (error) {
       console.error("Failed to increment view count:", error);
     }
 
-    const imageResponse = await fetch(imageData.url);
+    // Fetch image directly from backend without exposing the URL to the client
+    const imageResponse = await fetch(`${apiUrl}/cdn/${imageId}`);
 
     if (!imageResponse.ok) {
       return new NextResponse("Failed to fetch image", { status: 500 });
@@ -43,6 +56,8 @@ export async function GET(
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
+        // Add security headers to prevent referrer leakage
+        "Referrer-Policy": "no-referrer",
       },
     });
   } catch (error) {
