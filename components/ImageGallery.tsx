@@ -203,7 +203,7 @@ export default function ImageGallery({
 
   const handleShare = (image: ImageItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareableLink = api.getShareableLink(image.id);
+    const shareableLink = api.getEmbededLink(image.id);
     navigator.clipboard.writeText(shareableLink);
     toast.success("Shareable link copied to clipboard");
   };
@@ -559,28 +559,58 @@ export default function ImageGallery({
                     {formatDate(selectedImage.uploaded_at)}
                   </p>
 
-                  <p className="mt-4">
-                    <strong>Shareable Link:</strong>
-                  </p>
-                  <div className="flex mt-1">
-                    <input
-                      type="text"
-                      readOnly
-                      value={api.getShareableLink(selectedImage.id)}
-                      className="w-full p-2 border border-gray-300 rounded-l"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          api.getShareableLink(selectedImage.id),
-                        );
-                        toast.success("Shareable link copied to clipboard");
-                      }}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-r hover:bg-blue-700 transition"
-                    >
-                      Copy
-                    </button>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="font-medium mb-1">
+                        <strong>Embeded Link:</strong>
+                      </p>
+                      <div className="flex">
+                        <input
+                          type="text"
+                          readOnly
+                          value={api.getEmbededLink(selectedImage.id)}
+                          className="w-full p-2 border border-gray-300 rounded-l"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              api.getEmbededLink(selectedImage.id),
+                            );
+                            toast.success("Embeded link copied to clipboard");
+                          }}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-r hover:bg-blue-700 transition"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="font-medium mb-1">
+                        <strong>Direct Image Link:</strong>
+                      </p>
+                      <div className="flex">
+                        <input
+                          type="text"
+                          readOnly
+                          value={api.getImageLink(selectedImage.id)}
+                          className="w-full p-2 border border-gray-300 rounded-l"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              api.getImageLink(selectedImage.id),
+                            );
+                            toast.success("Image link copied to clipboard");
+                          }}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-r hover:bg-blue-700 transition"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -216,10 +216,16 @@ export const api = {
     return `${baseUrl}/api/image/${encodeURIComponent(imageId)}`;
   },
 
-  getShareableLink: (imageId: string): string => {
+  getEmbededLink: (imageId: string): string => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     return `${baseUrl}/image/${encodeURIComponent(imageId)}`;
   },
+
+  getImageLink: (imageId: string): string => {
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    return `${baseUrl}/image/${encodeURIComponent(imageId)}`;
+  },
+
 
   recordImageView: async (
     imageId: string,
