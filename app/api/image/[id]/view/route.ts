@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ipAddress } from "@vercel/functions";
 import { incrementViewCount } from "@/lib/server-api";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
+  const params = await props.params;
   try {
     const imageId = params.id;
 
     const ip =
-      request.headers.get("x-forwarded-for") || request.ip || "unknown";
+      request.headers.get("x-forwarded-for") || ipAddress(request) || "unknown";
 
     const result = await incrementViewCount(imageId, ip);
 
     return NextResponse.json({
       success: true,
       counted: result.counted,
-      views: result.count,
+      count: result.count,
     });
   } catch (error) {
     console.error("Error incrementing view count:", error);

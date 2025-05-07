@@ -2,17 +2,19 @@ import { Suspense } from "react";
 import { Metadata } from "next";
 import { getImageById } from "../../../lib/server-api";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 interface ImagePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // Generate metadata for the page including OpenGraph and Twitter tags
-export async function generateMetadata({
-  params,
-}: ImagePageProps): Promise<Metadata> {
+export async function generateMetadata(
+  props: ImagePageProps,
+): Promise<Metadata> {
+  const params = await props.params;
   const image = await getImageById(params.id);
 
   // If the image doesn't exist, use default metadata
@@ -53,7 +55,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function ImagePage({ params }: ImagePageProps) {
+export default async function ImagePage(props: ImagePageProps) {
+  const params = await props.params;
   const image = await getImageById(params.id);
 
   // If the image doesn't exist, redirect to the main page
@@ -71,9 +74,9 @@ export default async function ImagePage({ params }: ImagePageProps) {
         <header className="mb-10">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Image Viewer</h1>
           <p className="text-gray-600">
-            <a href="/" className="text-blue-500 hover:underline">
+            <Link href="/" className="text-blue-500 hover:underline">
               &larr; Back to Image Library
-            </a>
+            </Link>
           </p>
         </header>
 
@@ -89,6 +92,7 @@ export default async function ImagePage({ params }: ImagePageProps) {
               }
             >
               <div className="flex justify-center">
+              { /* eslint-disable-next-line @next/next/no-img-element*/}
                 <img
                   src={proxyUrl}
                   alt={`Image ${image.id}`}

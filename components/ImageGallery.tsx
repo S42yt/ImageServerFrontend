@@ -18,7 +18,8 @@ export default function ImageGallery({
   refreshTrigger = 0,
 }: ImageGalleryProps) {
   const [images, setImages] = useState<ImageItem[]>(preloadedImages);
-  const [filteredImages, setFilteredImages] = useState<ImageItem[]>(preloadedImages);
+  const [filteredImages, setFilteredImages] =
+    useState<ImageItem[]>(preloadedImages);
   const [loading, setLoading] = useState<boolean>(!preloadedImages.length);
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -27,18 +28,6 @@ export default function ImageGallery({
   const [showOnlyMine, setShowOnlyMine] = useState<boolean>(false);
   const router = useRouter();
   const imageRefs = useRef<Record<string, HTMLImageElement>>({});
-
-  const handleNewImage = useCallback((newImage: ImageItem) => {
-    if (!newImage) return;
-
-    setImages((prevImages) => {
-      const exists = prevImages.some((img) => img.id === newImage.id);
-      if (exists) return prevImages;
-
-      const updatedImages = [...prevImages, newImage];
-      return api.sortImagesByViewCount(updatedImages);
-    });
-  }, []);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -57,7 +46,9 @@ export default function ImageGallery({
   useEffect(() => {
     // Apply the filter whenever showOnlyMine changes or images update
     if (showOnlyMine && currentSessionId) {
-      setFilteredImages(images.filter(img => img.sessionId === currentSessionId));
+      setFilteredImages(
+        images.filter((img) => img.sessionId === currentSessionId),
+      );
     } else {
       setFilteredImages(images);
     }
@@ -258,15 +249,15 @@ export default function ImageGallery({
                 onChange={toggleMyImagesFilter}
                 className="sr-only"
               />
-              <div 
+              <div
                 onClick={toggleMyImagesFilter}
                 className={`toggle-bg block h-6 rounded-full w-10 cursor-pointer ${
-                  showOnlyMine ? 'bg-green-500' : 'bg-gray-300'
+                  showOnlyMine ? "bg-green-500" : "bg-gray-300"
                 }`}
               ></div>
-              <div 
+              <div
                 className={`toggle-dot absolute w-4 h-4 bg-white rounded-full shadow inset-y-0 left-0 m-1 transition-transform duration-200 ease-in ${
-                  showOnlyMine ? 'transform translate-x-4' : ''
+                  showOnlyMine ? "transform translate-x-4" : ""
                 }`}
               ></div>
             </div>
@@ -314,9 +305,7 @@ export default function ImageGallery({
 
       {filteredImages.length === 0 && showOnlyMine && (
         <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg mb-4">
-          <p className="text-gray-500">
-            You haven't uploaded any images yet.
-          </p>
+          <p className="text-gray-500">You haven&apos;t uploaded any images yet.</p>
         </div>
       )}
 
@@ -333,6 +322,7 @@ export default function ImageGallery({
               </div>
             ) : (
               <div className="relative h-48 overflow-hidden">
+               { /* eslint-disable-next-line @next/next/no-img-element*/}
                 <img
                   ref={(el) => {
                     if (el) imageRefs.current[image.id] = el;
@@ -370,7 +360,7 @@ export default function ImageGallery({
                       title={
                         canDeleteImage(image)
                           ? "Delete image"
-                          : "Can't delete (not yours)"
+                          : "Can&apos;t delete (not yours)"
                       }
                     >
                       <svg
@@ -484,6 +474,7 @@ export default function ImageGallery({
                 </div>
               ) : (
                 <div className="relative">
+                { /* eslint-disable-next-line @next/next/no-img-element*/}
                   <img
                     id={`modal-image-${selectedImage.id}`}
                     ref={(el) => {

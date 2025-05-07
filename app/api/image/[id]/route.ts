@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImageById, setImageOwner } from "@/lib/server-api";
 import { cookies } from "next/headers";
+import { getSession } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
+  const params = await props.params;
   try {
     const imageId = params.id;
     const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
@@ -18,7 +20,6 @@ export async function GET(
       return new NextResponse("API URL not configured", { status: 500 });
     }
 
-    // Get image data from server-side API
     const imageData = await getImageById(imageId);
 
     if (!imageData) {
@@ -26,11 +27,13 @@ export async function GET(
     }
 
     try {
-      // Record view asynchronously
-      const baseUrl = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+      const baseUrl =
+        request.headers.get("x-forwarded-host") ||
+        request.headers.get("host") ||
+        "";
       const protocol = baseUrl.includes("localhost") ? "http" : "https";
-      fetch(`${protocol}://${baseUrl}/api/image/${imageId}/view`, { 
-        method: "GET"  // Changed from POST to GET to match the route implementation
+      fetch(`${protocol}://${baseUrl}/api/image/${imageId}/view`, {
+        method: "GET",
       }).catch((err) => {
         console.error("Failed to record view:", err);
       });
@@ -38,7 +41,6 @@ export async function GET(
       console.error("Failed to increment view count:", error);
     }
 
-    // Fetch image directly from backend without exposing the URL to the client
     const imageResponse = await fetch(`${apiUrl}/cdn/${imageId}`);
 
     if (!imageResponse.ok) {
@@ -56,7 +58,6 @@ export async function GET(
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
-        // Add security headers to prevent referrer leakage
         "Referrer-Policy": "no-referrer",
       },
     });
@@ -68,16 +69,18 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
+  const params = await props.params;
   try {
     const imageId = params.id;
-    const data = await request.json();
+    await request.json();
 
     let sessionId = request.headers.get("X-Session-ID");
     if (!sessionId) {
-      const cookieValue = cookies().get("session_id")?.value;
-      sessionId = cookieValue || null;
+      const cookieStore = await cookies();
+      const sessionCookie = cookieStore.get("session_id");
+      sessionId = sessionCookie?.value || null;
     }
 
     if (!sessionId) {
@@ -87,10 +90,15 @@ export async function PUT(
       );
     }
 
-    if (sessionId) {
-      setImageOwner(imageId, sessionId);
-      console.log(`Assigned image ${imageId} to session ${sessionId}`);
+    const sessionData = await getSession(sessionId);
+    if (!sessionData) {
+      console.log(
+        `Session ${sessionId} not found in database, associating image anyway`,
+      );
     }
+
+    await setImageOwner(imageId, sessionId);
+    console.log(`Assigned image ${imageId} to session ${sessionId}`);
 
     return NextResponse.json({ success: true, id: imageId, sessionId });
   } catch (error) {

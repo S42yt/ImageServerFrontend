@@ -1,6 +1,4 @@
 import { Suspense } from "react";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import ImageUploader from "../components/ImageUploader";
 import ImageGallery from "../components/ImageGallery";
 import { Metadata } from "next";
@@ -12,16 +10,17 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function Home({ searchParams }: PageProps) {
   const preloadedImages = await getImages();
-  const sharedImageId = searchParams.id as string | undefined;
+  
+  const params = await searchParams;
+  const sharedImageId = typeof params.id === 'string' ? params.id : undefined;
 
   return (
     <main className="min-h-screen p-6 md:p-12">
-      <ToastContainer position="top-right" autoClose={3000} />
       <div className="max-w-6xl mx-auto">
         <header className="mb-10">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Image Library</h1>
