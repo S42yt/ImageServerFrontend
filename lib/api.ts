@@ -223,7 +223,7 @@ export const api = {
 
   getImageLink: (imageId: string): string => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-    return `${baseUrl}/image/${encodeURIComponent(imageId)}`;
+    return `${baseUrl}/api/${encodeURIComponent(imageId)}`;
   },
 
 
