@@ -528,7 +528,7 @@ export default function ImageGallery({
                       }
                     }}
                     alt={`Image ${selectedImage.id}`}
-                    className="w-full max-h-[70vh] object-contain mb-4"
+                    className="w-full max-h-[50vh] object-contain mb-4"
                     src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
                     onError={() => handleImageError(selectedImage.id)}
                   />
