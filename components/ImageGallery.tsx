@@ -31,6 +31,30 @@ export default function ImageGallery({
   const imageRefs = useRef<Record<string, HTMLImageElement>>({});
 
   useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1); // Remove the # symbol
+      if (!hash) {
+        setSelectedImage(null);
+        if (sharedImageId) {
+          router.replace("/");
+        }
+      } else {
+        const image = images.find((img) => img.id === hash);
+        if (image) {
+          setSelectedImage(image);
+        }
+      }
+    };
+
+    // Check hash on initial load
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [images, sharedImageId, router]);
+
+  useEffect(() => {
     const fetchSession = async () => {
       try {
         const sessionId = await api.getSession();
@@ -161,7 +185,8 @@ export default function ImageGallery({
 
   const handleViewImage = useCallback(
     async (image: ImageItem) => {
-      setSelectedImage(image);
+      // Update URL hash instead of using history.pushState
+      window.location.hash = image.id;
 
       try {
         const result = await api.recordImageView(image.id);
@@ -453,10 +478,8 @@ export default function ImageGallery({
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => {
-            setSelectedImage(null);
-            if (sharedImageId) {
-              router.replace("/");
-            }
+            // Clear the hash instead of using history.back()
+            window.location.hash = "";
           }}
         >
           <div
@@ -467,10 +490,8 @@ export default function ImageGallery({
               <h3 className="font-bold">Image Details</h3>
               <button
                 onClick={() => {
-                  setSelectedImage(null);
-                  if (sharedImageId) {
-                    router.replace("/");
-                  }
+                  // Clear the hash instead of using history.back()
+                  window.location.hash = "";
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
