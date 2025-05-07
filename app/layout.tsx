@@ -1,12 +1,10 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import dynamic from "next/dynamic";
+import { lazy } from "react";
 
-// Dynamically import CookieConsent with no SSR to avoid hydration errors
-const CookieConsent = dynamic(() => import("../components/CookieConsent"), {
-  ssr: false,
-});
+const CookieConsent = lazy(() => import("../components/CookieConsent"));
+const ToastWrapper = lazy(() => import("../components/ToastWrapper"));
 
 export const metadata: Metadata = {
   title: "ServerImages Library",
@@ -21,6 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <Suspense fallback={null}>
+          <ToastWrapper />
+        </Suspense>
         {children}
         <Suspense fallback={null}>
           <CookieConsent />

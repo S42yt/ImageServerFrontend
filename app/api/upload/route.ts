@@ -7,7 +7,10 @@ export async function POST(request: NextRequest) {
 
   if (!apiUrl) {
     console.error("API URL not configured");
-    return NextResponse.json({ error: "API URL not configured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "API URL not configured" },
+      { status: 500 },
+    );
   }
 
   try {
@@ -15,7 +18,7 @@ export async function POST(request: NextRequest) {
     let body;
     let headers = {};
     const contentType = request.headers.get("content-type") || "";
-    
+
     if (contentType.includes("multipart/form-data")) {
       // Handle form data upload
       body = await request.formData();
@@ -24,7 +27,7 @@ export async function POST(request: NextRequest) {
       // Handle JSON upload (base64)
       body = await request.json();
       headers = {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       };
     }
 
@@ -32,23 +35,28 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`${apiUrl}/upload`, {
       method: "POST",
       headers,
-      body: contentType.includes("multipart/form-data") 
-        ? body 
-        : JSON.stringify(body)
+      body: contentType.includes("multipart/form-data")
+        ? body
+        : JSON.stringify(body),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
+      throw new Error(
+        `Failed to upload image: ${response.status} - ${errorText}`,
+      );
     }
 
     const data = await response.json();
 
     // Make sure the response contains URL and replace it with a proxy URL
     if (data && data.url) {
-      const baseUrl = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+      const baseUrl =
+        request.headers.get("x-forwarded-host") ||
+        request.headers.get("host") ||
+        "";
       const protocol = baseUrl.includes("localhost") ? "http" : "https";
-      
+
       // Create a proxy URL for the image
       const proxyUrl = `${protocol}://${baseUrl}/api/image/${data.id}`;
       data.url = proxyUrl;
@@ -59,7 +67,7 @@ export async function POST(request: NextRequest) {
     console.error("Error uploading image:", error);
     return NextResponse.json(
       { error: "Failed to upload image" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

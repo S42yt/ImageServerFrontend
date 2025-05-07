@@ -1,6 +1,7 @@
-import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import fs from "fs";
+import * as db from "./db";
 
 const API_URL =
   process.env.API_URL ||
@@ -12,71 +13,55 @@ const VIEW_COUNTS_FILE = path.join(DATA_DIR, "view-counts.json");
 const IMAGE_OWNERS_FILE = path.join(DATA_DIR, "image-owners.json");
 const VIEW_HISTORY_FILE = path.join(DATA_DIR, "view-history.json");
 
-function ensureDataDirectoryExists() {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o755 });
-      console.log(`Created data directory at ${DATA_DIR}`);
-    }
-    
-    try {
-      const testFile = path.join(DATA_DIR, '.write-test');
-      fs.writeFileSync(testFile, 'test');
-      fs.unlinkSync(testFile);
-    } catch (err) {
-      console.error(`Data directory exists but is not writable: ${DATA_DIR}`, err);
-      try {
-        fs.chmodSync(DATA_DIR, 0o755);
-        console.log(`Updated permissions for data directory at ${DATA_DIR}`);
-      } catch (permError) {
-        console.error(`Failed to update permissions: ${permError}`);
-      }
-    }
-  } catch (error) {
-    console.error(`Critical error with data directory at ${DATA_DIR}:`, error);
-  }
-}
+type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
 
-const ensureFileExists = (filePath: string, defaultContent: string = "{}") => {
+const loadJSONFile = (filePath: string, defaultValue: JSONValue = {}): JSONValue => {
   try {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, defaultContent, { mode: 0o644 });
-      console.log(`Created file at ${filePath}`);
-    } else {
-      try {
-        const stats = fs.statSync(filePath);
-        const content = fs.readFileSync(filePath, 'utf8');
-        if (!content.trim() || (defaultContent === "{}" && !isValidJson(content))) {
-          fs.writeFileSync(filePath, defaultContent, { mode: 0o644 });
-          console.log(`Reset file at ${filePath} with default content`);
-        }
-      } catch (err) {
-        console.error(`File exists but has issues: ${filePath}`, err);
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, "utf8");
+      if (data.trim()) {
         try {
-          fs.chmodSync(filePath, 0o644);
-        } catch (permError) {
-          console.error(`Failed to update file permissions: ${permError}`);
+          return JSON.parse(data);
+        } catch (e) {
+          console.error(`Invalid JSON in ${filePath}:`, e);
         }
       }
     }
   } catch (error) {
-    console.error(`Failed to create/verify file at ${filePath}:`, error);
+    console.error(`Error reading ${filePath}:`, error);
   }
+  return defaultValue;
 };
 
-function isValidJson(str: string) {
+let migrationPerformed = false;
+async function migrateDataIfNeeded() {
+  if (migrationPerformed) return;
+
   try {
-    JSON.parse(str);
-    return true;
-  } catch (e) {
-    return false;
+    const imageOwners = loadJSONFile(IMAGE_OWNERS_FILE) as Record<string, string>;
+    const viewCounts = loadJSONFile(VIEW_COUNTS_FILE) as Record<string, number>;
+
+    const rawViewHistory = loadJSONFile(VIEW_HISTORY_FILE) as Record<string, JSONValue>;
+    const viewHistory: Record<string, string[]> = {};
+
+    Object.keys(rawViewHistory).forEach((imageId) => {
+      if (Array.isArray(rawViewHistory[imageId])) {
+        viewHistory[imageId] = rawViewHistory[imageId] as string[];
+      }
+    });
+
+    await db.migrateFromJson(imageOwners, viewCounts, viewHistory);
+    migrationPerformed = true;
+
+    console.log("Data migrated from JSON files to MongoDB successfully");
+  } catch (error) {
+    console.error("Failed to migrate data from JSON to MongoDB:", error);
   }
 }
 
-ensureDataDirectoryExists();
-ensureFileExists(VIEW_COUNTS_FILE);
-ensureFileExists(IMAGE_OWNERS_FILE);
-ensureFileExists(VIEW_HISTORY_FILE);
+if (process.env.NODE_ENV !== "production") {
+  migrateDataIfNeeded().catch(console.error);
+}
 
 export interface ImageItem {
   url: string;
@@ -88,84 +73,10 @@ export interface ImageItem {
   sessionId?: string;
 }
 
-function loadViewCounts(): Record<string, number> {
-  try {
-    if (fs.existsSync(VIEW_COUNTS_FILE)) {
-      const data = fs.readFileSync(VIEW_COUNTS_FILE, "utf8");
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error("Error loading view counts:", error);
-  }
-  return {};
+function hashIpAddress(ip: string): string {
+  const salt = new Date().toISOString().split("T")[0];
+  return crypto.createHash("sha256").update(`${ip}-${salt}`).digest("hex");
 }
-
-function saveViewCounts(viewCounts: Record<string, number>) {
-  try {
-    fs.writeFileSync(VIEW_COUNTS_FILE, JSON.stringify(viewCounts, null, 2));
-  } catch (error) {
-    console.error("Error saving view counts:", error);
-  }
-}
-
-function loadImageOwners(): Record<string, string> {
-  try {
-    if (fs.existsSync(IMAGE_OWNERS_FILE)) {
-      const data = fs.readFileSync(IMAGE_OWNERS_FILE, "utf8");
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error("Error loading image owners:", error);
-  }
-  return {};
-}
-
-function saveImageOwners(imageOwners: Record<string, string>) {
-  try {
-    fs.writeFileSync(IMAGE_OWNERS_FILE, JSON.stringify(imageOwners, null, 2));
-  } catch (error) {
-    console.error("Error saving image owners:", error);
-  }
-}
-
-function loadViewHistory(): Record<string, Set<string>> {
-  try {
-    if (fs.existsSync(VIEW_HISTORY_FILE)) {
-      const data = fs.readFileSync(VIEW_HISTORY_FILE, "utf8");
-      const parsedData = JSON.parse(data);
-
-      const result: Record<string, Set<string>> = {};
-      Object.keys(parsedData).forEach((imageId) => {
-        result[imageId] = new Set(parsedData[imageId]);
-      });
-
-      return result;
-    }
-  } catch (error) {
-    console.error("Error loading view history:", error);
-  }
-  return {};
-}
-
-function saveViewHistory(viewHistory: Record<string, Set<string>>) {
-  try {
-    const serializableData: Record<string, string[]> = {};
-    Object.keys(viewHistory).forEach((imageId) => {
-      serializableData[imageId] = Array.from(viewHistory[imageId]);
-    });
-
-    fs.writeFileSync(
-      VIEW_HISTORY_FILE,
-      JSON.stringify(serializableData, null, 2),
-    );
-  } catch (error) {
-    console.error("Error saving view history:", error);
-  }
-}
-
-const viewCounts: Record<string, number> = loadViewCounts();
-const viewedIpsByImage: Record<string, Set<string>> = loadViewHistory();
-const imageOwners: Record<string, string> = loadImageOwners();
 
 const ensureCorrectUrl = (url: string) => {
   if (url.startsWith("http")) {
@@ -184,15 +95,10 @@ const createProxyUrl = (imageId: string): string => {
   return `${baseUrl}/api/image/${encodeURIComponent(imageId)}`;
 };
 
-function hashIpAddress(ip: string): string {
-  const salt = new Date().toISOString().split("T")[0];
-  return crypto.createHash("sha256").update(`${ip}-${salt}`).digest("hex");
-}
-
 export async function getImages(): Promise<ImageItem[]> {
   try {
     const response = await fetch(`${API_URL}/images`, {
-      next: { revalidate: 10 }
+      next: { revalidate: 10 },
     });
 
     if (!response.ok) {
@@ -201,15 +107,22 @@ export async function getImages(): Promise<ImageItem[]> {
 
     const images = await response.json();
 
-    const transformedImages = Array.isArray(images)
-      ? images.map((img) => ({
-          ...img,
-          url: ensureCorrectUrl(img.url),
-          proxyUrl: createProxyUrl(img.id),
-          views: viewCounts[img.id] || 0,
-          sessionId: imageOwners[img.id] || null,
-        }))
-      : [];
+    const transformedImages = await Promise.all(
+      Array.isArray(images)
+        ? images.map(async (img) => {
+            const viewCount = await db.getViewCount(img.id);
+            const sessionId = await db.getImageOwner(img.id);
+
+            return {
+              ...img,
+              url: ensureCorrectUrl(img.url),
+              proxyUrl: createProxyUrl(img.id),
+              views: viewCount,
+              sessionId: sessionId,
+            };
+          })
+        : [],
+    );
 
     return transformedImages.sort((a, b) => (b.views || 0) - (a.views || 0));
   } catch (error) {
@@ -234,52 +147,37 @@ export async function incrementViewCount(
 ): Promise<{ counted: boolean; count: number }> {
   try {
     const hashedIp = hashIpAddress(ipAddress);
-
-    if (!viewedIpsByImage[imageId]) {
-      viewedIpsByImage[imageId] = new Set();
-    }
-    if (viewCounts[imageId] === undefined) {
-      viewCounts[imageId] = 0;
-    }
-
-    if (viewedIpsByImage[imageId].has(hashedIp)) {
-      return {
-        counted: false,
-        count: viewCounts[imageId],
-      };
-    }
-
-    viewedIpsByImage[imageId].add(hashedIp);
-
-    viewCounts[imageId] += 1;
-
-    saveViewCounts(viewCounts);
-    saveViewHistory(viewedIpsByImage);
-
-    console.log(
-      `Incremented view count for ${imageId} to ${viewCounts[imageId]}`,
-    );
-
-    return {
-      counted: true,
-      count: viewCounts[imageId],
-    };
+    return await db.incrementViewCount(imageId, hashedIp);
   } catch (error) {
     console.error(`Failed to increment view count for ${imageId}:`, error);
     throw error;
   }
 }
 
-export function getViewCount(imageId: string): number {
-  return viewCounts[imageId] || 0;
+export function getViewCount(imageId: string): Promise<number> {
+  return db.getViewCount(imageId);
 }
 
-export function canDeleteImage(imageId: string, sessionId: string): boolean {
-  return imageOwners[imageId] === sessionId;
+export function canDeleteImage(
+  imageId: string,
+  sessionId: string,
+): Promise<boolean> {
+  return db.canDeleteImage(imageId, sessionId);
 }
 
-export function setImageOwner(imageId: string, sessionId: string): void {
-  imageOwners[imageId] = sessionId;
-  saveImageOwners(imageOwners);
+// New function to delete all image data from MongoDB
+export async function deleteAllImageData(imageId: string): Promise<void> {
+  await db.deleteAllImageData(imageId);
+}
+
+export async function setImageOwner(
+  imageId: string,
+  sessionId: string,
+): Promise<void> {
+  await db.setImageOwner(imageId, sessionId);
   console.log(`Set owner for image ${imageId} to session ${sessionId}`);
+}
+
+export async function getUserImages(sessionId: string): Promise<string[]> {
+  return db.getUserImages(sessionId);
 }

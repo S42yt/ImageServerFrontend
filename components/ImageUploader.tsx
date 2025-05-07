@@ -1,14 +1,14 @@
-"use client"; // Mark as client component
+"use client";
 
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { api } from "../lib/api";
 import { toast } from "react-toastify";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, TurnstileInstance } from "@marsidev/react-turnstile";
 import { ImageItem } from "../lib/api";
 
 interface ImageUploaderProps {
-  onUploadSuccess?: (newImage?: ImageItem) => void; // Update the type to pass the new image
+  onUploadSuccess?: (newImage?: ImageItem) => void; 
 }
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -19,7 +19,7 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
     {},
   );
-  const turnstileRef = useRef<any>(null);
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {

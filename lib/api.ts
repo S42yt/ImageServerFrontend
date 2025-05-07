@@ -43,12 +43,14 @@ export const api = {
     try {
       const baseUrl =
         typeof window !== "undefined" ? window.location.origin : "";
-      const cookieConsent = localStorage.getItem("cookie-consent");
+      const cookieConsent =
+        typeof window !== "undefined" ? localStorage.getItem("cookie-consent") : null;
 
       const response = await fetch(`${baseUrl}/api/session`, {
         headers: {
           "X-Cookie-Consent": cookieConsent || "unknown",
         },
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -63,10 +65,8 @@ export const api = {
     file: File,
     turnstileToken: string,
   ): Promise<ImageItem> => {
-    // Get session ID before uploading
     const sessionId = await api.getSession();
 
-    // Use server-side proxy for upload
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const formData = new FormData();
     formData.append("file", file);
@@ -84,7 +84,6 @@ export const api = {
       response.data.url = ensureCorrectUrl(response.data.url);
       response.data.sessionId = sessionId;
 
-      // Register the image ownership in our system
       try {
         await fetch(`${baseUrl}/api/image/${response.data.id}`, {
           method: "PUT",
@@ -93,6 +92,7 @@ export const api = {
             "X-Session-ID": sessionId,
           },
           body: JSON.stringify({ sessionId }),
+          credentials: "include",
         });
       } catch (error) {
         console.error("Error registering image ownership:", error);
@@ -106,23 +106,24 @@ export const api = {
     base64Data: string,
     turnstileToken: string,
   ): Promise<ImageItem> => {
-    // Get session ID before uploading
     const sessionId = await api.getSession();
 
-    // Use server-side proxy for upload
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
-    const response = await axios.post(`${baseUrl}/api/upload`, {
-      base64: base64Data,
-      "cf-turnstile-response": turnstileToken,
-      sessionId,
-    });
+    const response = await axios.post(
+      `${baseUrl}/api/upload`,
+      {
+        base64: base64Data,
+        "cf-turnstile-response": turnstileToken,
+        sessionId,
+      },
+      { withCredentials: true },
+    );
 
     if (response.data && response.data.url) {
       response.data.url = ensureCorrectUrl(response.data.url);
       response.data.sessionId = sessionId;
 
-      // Register the image ownership in our system
       try {
         await fetch(`${baseUrl}/api/image/${response.data.id}`, {
           method: "PUT",
@@ -131,6 +132,7 @@ export const api = {
             "X-Session-ID": sessionId,
           },
           body: JSON.stringify({ sessionId }),
+          credentials: "include",
         });
       } catch (error) {
         console.error("Error registering image ownership:", error);
@@ -142,11 +144,12 @@ export const api = {
 
   getAllImages: async (): Promise<ImageItem[]> => {
     try {
-      const sessionId = await api.getSession();
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+      const baseUrl =
+        typeof window !== "undefined" ? window.location.origin : "";
 
-      // Use server-side proxy for getting images
-      const response = await axios.get(`${baseUrl}/api/images`);
+      const response = await axios.get(`${baseUrl}/api/images`, {
+        withCredentials: true,
+      });
       const images = Array.isArray(response.data) ? response.data : [];
 
       return images.map((img) => ({
@@ -162,17 +165,14 @@ export const api = {
   deleteImage: async (imageId: string): Promise<void> => {
     try {
       const sessionId = await api.getSession();
-      const canDelete = await api.canDeleteImage(imageId, sessionId);
+      const baseUrl =
+        typeof window !== "undefined" ? window.location.origin : "";
 
-      if (!canDelete) {
-        throw new Error("You don't have permission to delete this image");
-      }
-
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
       await axios.delete(`${baseUrl}/api/image/${imageId}/delete`, {
         headers: {
           "X-Session-ID": sessionId,
         },
+        withCredentials: true,
       });
     } catch (error) {
       console.error("Failed to delete image:", error);
@@ -185,10 +185,26 @@ export const api = {
     sessionId: string,
   ): Promise<boolean> => {
     try {
-      const images = await api.getAllImages();
-      const image = images.find((img) => img.id === imageId);
 
-      return image?.sessionId === sessionId;
+      const baseUrl =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const response = await fetch(
+        `${baseUrl}/api/image/${imageId}/check-permission`,
+        {
+          method: "GET",
+          headers: {
+            "X-Session-ID": sessionId,
+          },
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      return data.canDelete === true;
     } catch (error) {
       console.error("Failed to check delete permission:", error);
       return false;
@@ -213,6 +229,7 @@ export const api = {
         typeof window !== "undefined" ? window.location.origin : "";
       const response = await fetch(`${baseUrl}/api/image/${imageId}/view`, {
         method: "GET",
+        credentials: "include",
       });
 
       const data = await response.json();
@@ -230,7 +247,6 @@ export const api = {
     return [...images].sort((a, b) => (b.views || 0) - (a.views || 0));
   },
 
-  // Check if cookies are accepted
   areCookiesAccepted: (): boolean => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("cookie-consent") === "accepted";
