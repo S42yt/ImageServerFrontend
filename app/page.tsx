@@ -9,15 +9,8 @@ export const metadata: Metadata = {
   description: "A simple image hosting library using the ServerImages backend",
 };
 
-interface PageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
-
-export default async function Home({ searchParams }: PageProps) {
+export default async function Home() {
   const preloadedImages = await getImages();
-  
-  const params = await searchParams;
-  const sharedImageId = typeof params.id === 'string' ? params.id : undefined;
 
   return (
     <main className="min-h-screen p-6 md:p-12">
@@ -40,10 +33,7 @@ export default async function Home({ searchParams }: PageProps) {
               <div className="text-center py-10">Loading images...</div>
             }
           >
-            <ImageGallery
-              preloadedImages={preloadedImages}
-              sharedImageId={sharedImageId}
-            />
+            <ImageGallery preloadedImages={preloadedImages} />
           </Suspense>
         </section>
 
