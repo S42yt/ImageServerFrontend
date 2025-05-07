@@ -26,6 +26,7 @@ export default function ImageGallery({
   const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [debugMode, setDebugMode] = useState<boolean>(false);
   const [showOnlyMine, setShowOnlyMine] = useState<boolean>(false);
+  const [sortOption, setSortOption] = useState<string>("views");
   const router = useRouter();
   const imageRefs = useRef<Record<string, HTMLImageElement>>({});
 
@@ -44,15 +45,22 @@ export default function ImageGallery({
   }, [refreshTrigger]);
 
   useEffect(() => {
-    // Apply the filter whenever showOnlyMine changes or images update
-    if (showOnlyMine && currentSessionId) {
-      setFilteredImages(
-        images.filter((img) => img.sessionId === currentSessionId),
-      );
+    let resultImages = [...images];
+
+    if (sortOption === "newest") {
+      resultImages = api.sortImagesByNewest(resultImages);
+    } else if (sortOption === "oldest") {
+      resultImages = api.sortImagesByOldest(resultImages);
     } else {
-      setFilteredImages(images);
+      resultImages = api.sortImagesByViewCount(resultImages);
     }
-  }, [showOnlyMine, images, currentSessionId]);
+
+    if (showOnlyMine && currentSessionId) {
+      resultImages = resultImages.filter((img) => img.sessionId === currentSessionId);
+    }
+
+    setFilteredImages(resultImages);
+  }, [showOnlyMine, sortOption, images, currentSessionId]);
 
   const handleImageError = (imageId: string) => {
     console.error(`Failed to load image: ${imageId}`);
@@ -237,6 +245,21 @@ export default function ImageGallery({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Images</h2>
         <div className="flex items-center space-x-4">
+          <div className="flex items-center mr-4">
+            <label htmlFor="sort-dropdown" className="mr-2 text-sm">
+              Sort by:
+            </label>
+            <select
+              id="sort-dropdown"
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="p-2 border border-gray-300 rounded"
+            >
+              <option value="views">Most Viewed</option>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
           <div className="flex items-center">
             <label htmlFor="my-images-switch" className="mr-2 text-sm">
               Only show my images

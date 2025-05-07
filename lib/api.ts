@@ -247,6 +247,18 @@ export const api = {
     return [...images].sort((a, b) => (b.views || 0) - (a.views || 0));
   },
 
+  sortImagesByNewest: (images: ImageItem[]): ImageItem[] => {
+    return [...images].sort((a, b) => 
+      new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
+    );
+  },
+
+  sortImagesByOldest: (images: ImageItem[]): ImageItem[] => {
+    return [...images].sort((a, b) => 
+      new Date(a.uploaded_at).getTime() - new Date(b.uploaded_at).getTime()
+    );
+  },
+
   areCookiesAccepted: (): boolean => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("cookie-consent") === "accepted";
