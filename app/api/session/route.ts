@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await createOrUpdateSession(sessionId);
+    const ipAddress = request.headers.get("x-forwarded-for") || request.nextUrl.hostname || "unknown";
+    await createOrUpdateSession(sessionId, ipAddress);
   } catch (error) {
     console.error("Failed to update session in database:", error);
   }
