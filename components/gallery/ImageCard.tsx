@@ -35,7 +35,7 @@ export default function ImageCard({
 
   return (
     <div
-      className="bg-white rounded-lg shadow overflow-hidden transition-transform hover:scale-105 cursor-pointer"
+      className="bg-white rounded-lg shadow overflow-hidden transition-transform hover:scale-102 active:scale-98 cursor-pointer touch-manipulation"
       onClick={() => onViewImage(image)}
     >
       {hasError ? (
@@ -51,12 +51,13 @@ export default function ImageCard({
             className="w-full h-full object-cover"
             src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-0 hover:opacity-60 transition-opacity flex items-end justify-center pb-2">
-            <div className="flex gap-2 p-1">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-0 hover:opacity-70 transition-opacity flex items-end justify-center pb-2">
+            <div className="flex gap-2 p-2">
               <button
                 onClick={handleShare}
-                className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-700 transition"
+                className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
                 title="Share image"
+                aria-label="Share image"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -75,8 +76,10 @@ export default function ImageCard({
               </button>
               <button
                 onClick={(e) => onDelete(image, e)}
-                className={`p-1.5 text-white rounded transition ${canDelete ? "bg-red-500 hover:bg-red-700" : "bg-gray-400 cursor-not-allowed"}`}
+                className={`p-2 text-white rounded transition ${canDelete ? "bg-red-500 hover:bg-red-600" : "bg-gray-400 cursor-not-allowed"}`}
                 title={canDelete ? "Delete image" : "Can't delete (not yours)"}
+                disabled={!canDelete}
+                aria-label={canDelete ? "Delete image" : "Can't delete (not yours)"}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -96,13 +99,13 @@ export default function ImageCard({
             </div>
           </div>
           {canDelete && (
-            <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 rounded">
+            <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded shadow">
               Yours
             </div>
           )}
         </div>
       )}
-      <div className="p-3 bg-white">
+      <div className="p-3">
         <div className="flex justify-between items-center">
           <p className="text-sm text-gray-500 truncate">{image.id}</p>
           <div className="flex items-center text-gray-400 text-xs" title="View count">

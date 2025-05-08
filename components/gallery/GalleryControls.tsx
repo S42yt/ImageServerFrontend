@@ -18,52 +18,51 @@ export default function GalleryControls({
   onToggleDebugMode,
 }: GalleryControlsProps) {
   return (
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-2xl font-bold">Images</h2>
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center mr-4">
-          <label htmlFor="sort-dropdown" className="mr-2 text-sm">
-            Sort by:
-          </label>
-          <select
-            id="sort-dropdown"
-            value={sortOption}
-            onChange={(e) => onSortChange(e.target.value)}
-            className="p-2 border border-gray-300 rounded"
-          >
-            <option value="views">Most Viewed</option>
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
-        </div>
-        <div className="flex items-center">
-          <label htmlFor="my-images-switch" className="mr-2 text-sm">
-            Only show my images
-          </label>
-          <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-            <input
-              id="my-images-switch"
-              type="checkbox"
-              checked={showOnlyMine}
-              onChange={onToggleMyImages}
-              className="sr-only"
-            />
-            <div
-              onClick={onToggleMyImages}
-              className={`toggle-bg block h-6 rounded-full w-10 cursor-pointer ${
-                showOnlyMine ? "bg-green-500" : "bg-gray-300"
-              }`}
-            ></div>
-            <div
-              className={`toggle-dot absolute w-4 h-4 bg-white rounded-full shadow inset-y-0 left-0 m-1 transition-transform duration-200 ease-in ${
-                showOnlyMine ? "transform translate-x-4" : ""
-              }`}
-            ></div>
+    <div className="mb-4 bg-white rounded-lg shadow p-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-xl font-bold mb-3 sm:mb-0">Images</h2>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center">
+            <label htmlFor="sort-dropdown" className="mr-2 text-sm whitespace-nowrap">
+              Sort by:
+            </label>
+            <select
+              id="sort-dropdown"
+              value={sortOption}
+              onChange={(e) => onSortChange(e.target.value)}
+              className="p-2 border border-gray-300 rounded bg-white flex-grow"
+            >
+              <option value="views">Most Viewed</option>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <label htmlFor="my-images-switch" className="mr-2 text-sm">
+                Only my images
+              </label>
+              <button 
+                onClick={onToggleMyImages}
+                className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${showOnlyMine ? 'bg-blue-500' : 'bg-gray-300'}`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    showOnlyMine ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
+      </div>
+      
+      <div className="mt-3 flex justify-end">
         <button
           onClick={onToggleDebugMode}
-          className="text-xs text-gray-500 underline"
+          className="text-xs text-gray-500 underline hover:text-gray-700"
         >
           {debugMode ? "Hide Debug Info" : "Show Debug Info"}
         </button>
