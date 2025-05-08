@@ -10,6 +10,7 @@ const VIEW_HISTORY_COLLECTION = "viewHistory";
 export interface SessionDocument {
   _id?: ObjectId;
   sessionId: string;
+  ipAddress: string;
   createdAt: Date;
   lastActive: Date;
 }
@@ -18,6 +19,7 @@ export interface ImageOwnerDocument {
   _id?: ObjectId;
   imageId: string;
   sessionId: string;
+  ipAddress: string;
   createdAt: Date;
 }
 
@@ -40,7 +42,7 @@ export async function getDb() {
   return client.db(DB_NAME);
 }
 
-export async function createOrUpdateSession(sessionId: string): Promise<void> {
+export async function createOrUpdateSession(sessionId: string, ipAddress: string): Promise<void> {
   const db = await getDb();
   const sessions = db.collection(SESSIONS_COLLECTION);
 
@@ -51,6 +53,7 @@ export async function createOrUpdateSession(sessionId: string): Promise<void> {
     {
       $set: {
         lastActive: now,
+        ipAddress,
       },
       $setOnInsert: {
         sessionId,
@@ -73,6 +76,7 @@ export async function getSession(
 export async function setImageOwner(
   imageId: string,
   sessionId: string,
+  ipAddress: string,
 ): Promise<void> {
   const db = await getDb();
   const images = db.collection(IMAGES_COLLECTION);
@@ -83,6 +87,7 @@ export async function setImageOwner(
       $set: {
         imageId,
         sessionId,
+        ipAddress,
         createdAt: new Date(),
       },
     },
@@ -121,20 +126,17 @@ export async function deleteImageOwnership(imageId: string): Promise<void> {
   await images.deleteOne({ imageId });
 }
 
-// New function to delete all data related to an image
 export async function deleteAllImageData(imageId: string): Promise<void> {
   const db = await getDb();
   
-  // Get all collections where image data might be stored
   const images = db.collection(IMAGES_COLLECTION);
   const viewCounts = db.collection(VIEW_COUNTS_COLLECTION);
   const viewHistory = db.collection(VIEW_HISTORY_COLLECTION);
   
-  // Delete data from all collections in parallel
   await Promise.all([
     images.deleteOne({ imageId }),
     viewCounts.deleteOne({ imageId }),
-    viewHistory.deleteMany({ imageId }) // Multiple users might have viewed the image
+    viewHistory.deleteMany({ imageId }) 
   ]);
   
   console.log(`All data for image ${imageId} deleted from database`);
@@ -142,47 +144,43 @@ export async function deleteAllImageData(imageId: string): Promise<void> {
 
 export async function incrementViewCount(
   imageId: string,
-  viewerHash: string,
+  viewerHash: string
 ): Promise<{ counted: boolean; count: number }> {
   const db = await getDb();
-  const viewCounts = db.collection(VIEW_COUNTS_COLLECTION);
-  const viewHistory = db.collection(VIEW_HISTORY_COLLECTION);
-
-  const existingView = await viewHistory.findOne({
+  const viewCountsCollection = db.collection(VIEW_COUNTS_COLLECTION);
+  const viewHistoryCollection = db.collection(VIEW_HISTORY_COLLECTION);
+  
+  const existingView = await viewHistoryCollection.findOne({
     imageId,
-    viewerHash,
+    viewerHash
   });
-
+  
   if (existingView) {
-    const countDoc = await viewCounts.findOne({ imageId });
-    return {
-      counted: false,
-      count: countDoc ? countDoc.count : 0,
-    };
+    const currentCount = await getViewCount(imageId);
+    return { counted: false, count: currentCount };
   }
-
-  await viewHistory.insertOne({
+  
+  await viewHistoryCollection.insertOne({
     imageId,
     viewerHash,
-    viewedAt: new Date(),
+    viewedAt: new Date()
   });
-
-  const result = await viewCounts.findOneAndUpdate(
+  
+  const result = await viewCountsCollection.findOneAndUpdate(
     { imageId },
-    {
+    { 
       $inc: { count: 1 },
-      $set: { updatedAt: new Date() },
-      $setOnInsert: { imageId },
+      $set: { updatedAt: new Date() }
     },
-    {
+    { 
       upsert: true,
-      returnDocument: "after",
-    },
+      returnDocument: 'after'
+    }
   );
-
-  return {
-    counted: true,
-    count: result?.value ? result.value.count : 1,
+  
+  return { 
+    counted: true, 
+    count: result?.value?.count || 1
   };
 }
 

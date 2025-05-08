@@ -74,7 +74,7 @@ export interface ImageItem {
 }
 
 function hashIpAddress(ip: string): string {
-  const salt = new Date().toISOString().split("T")[0];
+  const salt = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6";
   return crypto.createHash("sha256").update(`${ip}-${salt}`).digest("hex");
 }
 
@@ -150,7 +150,7 @@ export async function incrementViewCount(
     return await db.incrementViewCount(imageId, hashedIp);
   } catch (error) {
     console.error(`Failed to increment view count for ${imageId}:`, error);
-    throw error;
+    return { counted: false, count: await getViewCount(imageId) };
   }
 }
 
@@ -165,7 +165,6 @@ export function canDeleteImage(
   return db.canDeleteImage(imageId, sessionId);
 }
 
-// New function to delete all image data from MongoDB
 export async function deleteAllImageData(imageId: string): Promise<void> {
   await db.deleteAllImageData(imageId);
 }
@@ -173,8 +172,9 @@ export async function deleteAllImageData(imageId: string): Promise<void> {
 export async function setImageOwner(
   imageId: string,
   sessionId: string,
+  ipAddress: string,
 ): Promise<void> {
-  await db.setImageOwner(imageId, sessionId);
+  await db.setImageOwner(imageId, sessionId, ipAddress);
   console.log(`Set owner for image ${imageId} to session ${sessionId}`);
 }
 
