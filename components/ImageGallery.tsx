@@ -185,11 +185,17 @@ export default function ImageGallery({
   }, [fetchImages]);
 
   // Optimistic insert: show a just-uploaded image immediately, no refetch.
-  // It already carries the current session, so it renders as deletable ("yours").
+  // It carries the current session, so it renders as deletable ("yours").
+  // The SSE "image" event (which has no owner) can arrive first, so if the id
+  // already exists we MERGE to stamp ownership instead of skipping.
   useEffect(() => {
     if (!newImage) return;
     setImages((prev) => {
-      if (prev.some((img) => img.id === newImage.id)) return prev;
+      if (prev.some((img) => img.id === newImage.id)) {
+        return prev.map((img) =>
+          img.id === newImage.id ? { ...img, ...newImage } : img,
+        );
+      }
       return api.sortImagesByViewCount([newImage, ...prev]);
     });
   }, [newImage]);

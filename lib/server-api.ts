@@ -99,7 +99,7 @@ const createProxyUrl = (imageId: string): string => {
 export async function getImages(): Promise<ImageItem[]> {
   try {
     const response = await fetch(`${API_URL}/images`, {
-      next: { revalidate: 10 },
+      cache: "no-store",
     });
 
     if (!response.ok) {

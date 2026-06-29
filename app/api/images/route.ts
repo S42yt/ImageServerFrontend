@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(`${apiUrl}/images`, {
-      next: { revalidate: 10 },
+      cache: "no-store",
     });
 
     if (!response.ok) {
