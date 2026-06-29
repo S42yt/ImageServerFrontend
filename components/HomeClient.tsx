@@ -10,22 +10,19 @@ export default function HomeClient({
 }: {
   preloadedImages: ImageItem[];
 }) {
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [newImage, setNewImage] = useState<ImageItem | null>(null);
 
   return (
     <>
       <section className="mb-12">
         <h2 className="text-2xl font-bold mb-4">Upload Images</h2>
         <ImageUploader
-          onUploadSuccess={() => setRefreshTrigger((n) => n + 1)}
+          onUploadSuccess={(img) => img && setNewImage(img)}
         />
       </section>
 
       <section>
-        <ImageGallery
-          preloadedImages={preloadedImages}
-          refreshTrigger={refreshTrigger}
-        />
+        <ImageGallery preloadedImages={preloadedImages} newImage={newImage} />
       </section>
     </>
   );

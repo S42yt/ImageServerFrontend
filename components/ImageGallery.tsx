@@ -14,12 +14,14 @@ interface ImageGalleryProps {
   preloadedImages?: ImageItem[];
   sharedImageId?: string;
   refreshTrigger?: number;
+  newImage?: ImageItem | null;
 }
 
 export default function ImageGallery({
   preloadedImages = [],
   sharedImageId,
   refreshTrigger = 0,
+  newImage = null,
 }: ImageGalleryProps) {
   const [images, setImages] = useState<ImageItem[]>(preloadedImages);
   const [filteredImages, setFilteredImages] = useState<ImageItem[]>(preloadedImages);
@@ -163,6 +165,16 @@ export default function ImageGallery({
     const id = setInterval(() => fetchImages(false), 15000);
     return () => clearInterval(id);
   }, [fetchImages]);
+
+  // Optimistic insert: show a just-uploaded image immediately, no refetch.
+  // It already carries the current session, so it renders as deletable ("yours").
+  useEffect(() => {
+    if (!newImage) return;
+    setImages((prev) => {
+      if (prev.some((img) => img.id === newImage.id)) return prev;
+      return api.sortImagesByViewCount([newImage, ...prev]);
+    });
+  }, [newImage]);
 
   useEffect(() => {
     if (filteredImages.length > 0) {
