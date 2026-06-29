@@ -1,6 +1,10 @@
 # Next.js build output
 .next/
 out/
+*.tsbuildinfo
+
+# misc junk
+bash.exe.stackdump
 
 # Node modules
 node_modules/
