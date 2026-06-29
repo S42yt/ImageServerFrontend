@@ -26,20 +26,9 @@ export async function GET(
       return new NextResponse("Image not found", { status: 404 });
     }
 
-    try {
-      const baseUrl =
-        request.headers.get("x-forwarded-host") ||
-        request.headers.get("host") ||
-        "";
-      const protocol = request.headers.get("x-forwarded-proto") || (baseUrl.includes("localhost") ? "http" : "https");
-      fetch(`${protocol}://${baseUrl}/api/image/${imageId}/view`, {
-        method: "GET",
-      }).catch((err) => {
-        console.error("Failed to record view:", err);
-      });
-    } catch (error) {
-      console.error("Failed to increment view count:", error);
-    }
+    // Views are recorded client-side via /view (carries the real client IP).
+    // Do NOT fire a view here: this proxy runs server-side, so it would record
+    // every load under the server's IP and break per-IP counting.
 
     const imageResponse = await fetch(`${apiUrl}/cdn/${imageId}`);
 

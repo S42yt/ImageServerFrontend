@@ -11,7 +11,9 @@ export async function GET(
     const imageId = params.id;
 
     const ip =
-      request.headers.get("x-forwarded-for") || ipAddress(request) || "unknown";
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      ipAddress(request) ||
+      "unknown";
 
     const result = await incrementViewCount(imageId, ip);
 

@@ -1,6 +1,5 @@
 import { Suspense } from "react";
-import ImageUploader from "../components/ImageUploader";
-import ImageGallery from "../components/ImageGallery";
+import HomeClient from "../components/HomeClient";
 import { Metadata } from "next";
 import { getImages } from "../lib/server-api";
 
@@ -22,20 +21,11 @@ export default async function Home() {
           </p>
         </header>
 
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">Upload Images</h2>
-          <ImageUploader />
-        </section>
-
-        <section>
-          <Suspense
-            fallback={
-              <div className="text-center py-10">Loading images...</div>
-            }
-          >
-            <ImageGallery preloadedImages={preloadedImages} />
-          </Suspense>
-        </section>
+        <Suspense
+          fallback={<div className="text-center py-10">Loading images...</div>}
+        >
+          <HomeClient preloadedImages={preloadedImages} />
+        </Suspense>
 
         <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
           <p>

@@ -142,6 +142,8 @@ export async function deleteAllImageData(imageId: string): Promise<void> {
   console.log(`All data for image ${imageId} deleted from database`);
 }
 
+let viewIndexEnsured = false;
+
 export async function incrementViewCount(
   imageId: string,
   viewerHash: string
@@ -149,38 +151,45 @@ export async function incrementViewCount(
   const db = await getDb();
   const viewCountsCollection = db.collection(VIEW_COUNTS_COLLECTION);
   const viewHistoryCollection = db.collection(VIEW_HISTORY_COLLECTION);
-  
-  const existingView = await viewHistoryCollection.findOne({
-    imageId,
-    viewerHash
-  });
-  
-  if (existingView) {
-    const currentCount = await getViewCount(imageId);
-    return { counted: false, count: currentCount };
+
+  // Unique index makes "one view per IP per image" atomic: a duplicate insert
+  // throws E11000 instead of racing a check-then-insert. Created once per process.
+  if (!viewIndexEnsured) {
+    await viewHistoryCollection.createIndex(
+      { imageId: 1, viewerHash: 1 },
+      { unique: true },
+    );
+    viewIndexEnsured = true;
   }
-  
-  await viewHistoryCollection.insertOne({
-    imageId,
-    viewerHash,
-    viewedAt: new Date()
-  });
-  
+
+  try {
+    await viewHistoryCollection.insertOne({
+      imageId,
+      viewerHash,
+      viewedAt: new Date(),
+    });
+  } catch (error) {
+    if ((error as { code?: number }).code === 11000) {
+      return { counted: false, count: await getViewCount(imageId) };
+    }
+    throw error;
+  }
+
   const result = await viewCountsCollection.findOneAndUpdate(
     { imageId },
-    { 
+    {
       $inc: { count: 1 },
-      $set: { updatedAt: new Date() }
+      $set: { updatedAt: new Date() },
     },
-    { 
+    {
       upsert: true,
-      returnDocument: 'after'
-    }
+      returnDocument: "after",
+    },
   );
-  
+
   return {
     counted: true,
-    count: result?.count ?? 1
+    count: result?.count ?? 1,
   };
 }
 

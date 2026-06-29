@@ -134,31 +134,35 @@ export default function ImageGallery({
     }
   }, [sharedImageId, images, updateImageViewCount]);
 
+  const fetchImages = useCallback(async (showLoading: boolean) => {
+    if (showLoading) setLoading(true);
+    try {
+      const imageList = await api.getAllImages();
+      setImages(
+        api.sortImagesByViewCount(Array.isArray(imageList) ? imageList : []),
+      );
+      setImageErrors({});
+    } catch (error) {
+      console.error("Failed to fetch images:", error);
+      if (showLoading) toast.error("Failed to load images");
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (preloadedImages.length > 0 && refreshTrigger === 0) {
       setImages(api.sortImagesByViewCount(preloadedImages));
       return;
     }
+    fetchImages(true);
+  }, [refreshTrigger, preloadedImages, fetchImages]);
 
-    const fetchImages = async () => {
-      setLoading(true);
-      try {
-        const imageList = await api.getAllImages();
-        const sortedImages = api.sortImagesByViewCount(
-          Array.isArray(imageList) ? imageList : [],
-        );
-        setImages(sortedImages);
-        setImageErrors({});
-      } catch (error) {
-        console.error("Failed to fetch images:", error);
-        toast.error("Failed to load images");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchImages();
-  }, [refreshTrigger, preloadedImages]);
+  // ponytail: 15s poll surfaces other users' uploads; swap for SSE if true realtime is needed
+  useEffect(() => {
+    const id = setInterval(() => fetchImages(false), 15000);
+    return () => clearInterval(id);
+  }, [fetchImages]);
 
   useEffect(() => {
     if (filteredImages.length > 0) {
