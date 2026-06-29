@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         request.headers.get("x-forwarded-host") ||
         request.headers.get("host") ||
         "";
-      const protocol = baseUrl.includes("localhost") ? "http" : "https";
+      const protocol = request.headers.get("x-forwarded-proto") || (baseUrl.includes("localhost") ? "http" : "https");
 
       // Create a proxy URL for the image
       const proxyUrl = `${protocol}://${baseUrl}/api/image/${data.id}`;

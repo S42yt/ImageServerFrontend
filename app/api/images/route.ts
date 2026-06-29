@@ -24,11 +24,11 @@ export async function GET(request: NextRequest) {
 
     const images = await response.json();
 
-     const baseUrl =
+    const baseUrl =
       request.headers.get("x-forwarded-host") ||
       request.headers.get("host") ||
       "";
-    const protocol = baseUrl.includes("localhost") ? "http" : "https";
+    const protocol = request.headers.get("x-forwarded-proto") || (baseUrl.includes("localhost") ? "http" : "https");
 
     const transformedImages = images.map((img: { id: string; [key: string]: unknown }) => {
       const proxyUrl = `${protocol}://${baseUrl}/api/image/${img.id}`;

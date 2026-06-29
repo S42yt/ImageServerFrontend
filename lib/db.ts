@@ -178,9 +178,9 @@ export async function incrementViewCount(
     }
   );
   
-  return { 
-    counted: true, 
-    count: result?.value?.count || 1
+  return {
+    counted: true,
+    count: result?.count ?? 1
   };
 }
 

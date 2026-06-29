@@ -31,7 +31,7 @@ export async function GET(
         request.headers.get("x-forwarded-host") ||
         request.headers.get("host") ||
         "";
-      const protocol = baseUrl.includes("localhost") ? "http" : "https";
+      const protocol = request.headers.get("x-forwarded-proto") || (baseUrl.includes("localhost") ? "http" : "https");
       fetch(`${protocol}://${baseUrl}/api/image/${imageId}/view`, {
         method: "GET",
       }).catch((err) => {
@@ -97,7 +97,8 @@ export async function PUT(
       );
     }
 
-    await setImageOwner(imageId, sessionId);
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+    await setImageOwner(imageId, sessionId, ipAddress);
     console.log(`Assigned image ${imageId} to session ${sessionId}`);
 
     return NextResponse.json({ success: true, id: imageId, sessionId });
