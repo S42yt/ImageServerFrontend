@@ -1,4 +1,18 @@
 services:
+  app:
+    build: .
+    container_name: imageserver-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/serverImagesDB
+      NODE_ENV: production
+    env_file:
+      - .env.local
+    depends_on:
+      - mongodb
+
   mongodb:
     image: mongo:8
     container_name: imageserver-mongodb
