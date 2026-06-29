@@ -19,11 +19,10 @@ export default function CookieConsent() {
   };
 
   const declineCookies = () => {
+    // session_id is an essential/functional cookie (image ownership), so it is
+    // not cleared here — only marketing/analytics consent is declined.
     localStorage.setItem("cookie-consent", "declined");
     setShowBanner(false);
-
-    document.cookie =
-      "session_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   };
 
   if (!showBanner) {

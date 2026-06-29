@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImageById, setImageOwner } from "@/lib/server-api";
 import { cookies } from "next/headers";
-import { getSession } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -76,13 +75,6 @@ export async function PUT(
       return NextResponse.json(
         { error: "No session ID provided" },
         { status: 401 },
-      );
-    }
-
-    const sessionData = await getSession(sessionId);
-    if (!sessionData) {
-      console.log(
-        `Session ${sessionId} not found in database, associating image anyway`,
       );
     }
 

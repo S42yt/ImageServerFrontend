@@ -2,18 +2,9 @@ import { getClientPromise } from "./mongodb";
 import { ObjectId } from "mongodb";
 
 const DB_NAME = "serverImagesDB";
-const SESSIONS_COLLECTION = "sessions";
 const IMAGES_COLLECTION = "images";
 const VIEW_COUNTS_COLLECTION = "viewCounts";
 const VIEW_HISTORY_COLLECTION = "viewHistory";
-
-export interface SessionDocument {
-  _id?: ObjectId;
-  sessionId: string;
-  ipAddress: string;
-  createdAt: Date;
-  lastActive: Date;
-}
 
 export interface ImageOwnerDocument {
   _id?: ObjectId;
@@ -40,37 +31,6 @@ export interface ViewHistoryDocument {
 export async function getDb() {
   const client = await getClientPromise();
   return client.db(DB_NAME);
-}
-
-export async function createOrUpdateSession(sessionId: string, ipAddress: string): Promise<void> {
-  const db = await getDb();
-  const sessions = db.collection(SESSIONS_COLLECTION);
-
-  const now = new Date();
-
-  await sessions.updateOne(
-    { sessionId },
-    {
-      $set: {
-        lastActive: now,
-        ipAddress,
-      },
-      $setOnInsert: {
-        sessionId,
-        createdAt: now,
-      },
-    },
-    { upsert: true },
-  );
-}
-
-export async function getSession(
-  sessionId: string,
-): Promise<SessionDocument | null> {
-  const db = await getDb();
-  const sessions = db.collection(SESSIONS_COLLECTION);
-
-  return sessions.findOne({ sessionId }) as Promise<SessionDocument | null>;
 }
 
 export async function setImageOwner(

@@ -13,22 +13,21 @@ import ImageModal from "./gallery/ImageModal";
 interface ImageGalleryProps {
   preloadedImages?: ImageItem[];
   sharedImageId?: string;
-  refreshTrigger?: number;
   newImage?: ImageItem | null;
+  currentSessionId?: string;
 }
 
 export default function ImageGallery({
   preloadedImages = [],
   sharedImageId,
-  refreshTrigger = 0,
   newImage = null,
+  currentSessionId = "",
 }: ImageGalleryProps) {
   const [images, setImages] = useState<ImageItem[]>(preloadedImages);
   const [filteredImages, setFilteredImages] = useState<ImageItem[]>(preloadedImages);
   const [loading, setLoading] = useState<boolean>(!preloadedImages.length);
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
-  const [currentSessionId, setCurrentSessionId] = useState<string>("");
   const [debugMode, setDebugMode] = useState<boolean>(false);
   const [showOnlyMine, setShowOnlyMine] = useState<boolean>(false);
   const [sortOption, setSortOption] = useState<string>("views");
@@ -55,20 +54,6 @@ export default function ImageGallery({
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [images, sharedImageId, router]);
-
-  useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const sessionId = await api.getSession();
-        setCurrentSessionId(sessionId);
-        console.log(`Current session ID: ${sessionId}`);
-      } catch (error) {
-        console.error("Failed to fetch session:", error);
-      }
-    };
-
-    fetchSession();
-  }, [refreshTrigger]);
 
   useEffect(() => {
     let resultImages = [...images];
@@ -153,12 +138,13 @@ export default function ImageGallery({
   }, []);
 
   useEffect(() => {
-    if (preloadedImages.length > 0 && refreshTrigger === 0) {
+    if (preloadedImages.length > 0) {
       setImages(api.sortImagesByViewCount(preloadedImages));
+      setLoading(false);
       return;
     }
     fetchImages(true);
-  }, [refreshTrigger, preloadedImages, fetchImages]);
+  }, [preloadedImages, fetchImages]);
 
   // Real-time stream: backend pushes upload/delete events over SSE.
   // EventSource auto-reconnects on drop.
@@ -272,10 +258,6 @@ export default function ImageGallery({
     }
   };
 
-  const handleRefreshSession = (sessionId: string) => {
-    setCurrentSessionId(sessionId);
-  };
-
   if (loading) {
     return <div className="text-center py-10">Loading images...</div>;
   }
@@ -307,7 +289,6 @@ export default function ImageGallery({
           totalImages={images.length}
           userImages={images.filter((img) => img.sessionId === currentSessionId).length}
           showOnlyMine={showOnlyMine}
-          onSessionRefresh={handleRefreshSession}
         />
       )}
 

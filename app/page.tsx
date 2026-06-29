@@ -1,7 +1,7 @@
-import { Suspense } from "react";
 import HomeClient from "../components/HomeClient";
 import { Metadata } from "next";
 import { getImages } from "../lib/server-api";
+import { getSessionId } from "../lib/session";
 
 export const metadata: Metadata = {
   title: "ServerImages Library",
@@ -9,7 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const preloadedImages = await getImages();
+  const [preloadedImages, sessionId] = await Promise.all([
+    getImages(),
+    getSessionId(),
+  ]);
 
   return (
     <main className="min-h-screen p-6 md:p-12">
@@ -21,11 +24,7 @@ export default async function Home() {
           </p>
         </header>
 
-        <Suspense
-          fallback={<div className="text-center py-10">Loading images...</div>}
-        >
-          <HomeClient preloadedImages={preloadedImages} />
-        </Suspense>
+        <HomeClient preloadedImages={preloadedImages} sessionId={sessionId} />
 
         <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-500 text-sm">
           <p>
