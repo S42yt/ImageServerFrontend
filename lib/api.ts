@@ -57,12 +57,13 @@ const registerOwnership = async (baseUrl: string, imageId: string) => {
 export const api = {
   uploadImage: async (
     file: File,
-    turnstileToken: string,
+    turnstileToken?: string | null,
   ): Promise<ImageItem> => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("cf-turnstile-response", turnstileToken);
+    // Verified sessions upload without a token (proxy uses the internal secret).
+    if (turnstileToken) formData.append("cf-turnstile-response", turnstileToken);
 
     const response = await axios.post(`${baseUrl}/api/upload`, formData, {
       headers: { "Content-Type": "multipart/form-data" },

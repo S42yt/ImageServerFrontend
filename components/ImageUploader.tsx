@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { api } from "../lib/api";
 import { toast } from "react-toastify";
@@ -16,16 +16,27 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // Session already passed Turnstile once -> no widget, upload stays enabled.
+  const [verified, setVerified] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
     {},
   );
   const turnstileRef = useRef<TurnstileInstance | null>(null);
 
+  useEffect(() => {
+    fetch("/api/turnstile", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => setVerified(!!d.verified))
+      .catch(() => {});
+  }, []);
+
+  const canUpload = verified || !!turnstileToken;
+
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       if (!acceptedFiles.length) return;
 
-      if (!turnstileToken) {
+      if (!verified && !turnstileToken) {
         toast.error("Please complete the CAPTCHA challenge first.");
         turnstileRef.current?.reset();
         return;
@@ -77,6 +88,9 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
                 onUploadSuccess(response);
               }
 
+              // Session is now verified server-side; drop the widget.
+              setVerified(true);
+
               return response;
             })
             .catch((error) => {
@@ -116,7 +130,7 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
         setUploadProgress({});
       }
     },
-    [onUploadSuccess, turnstileToken],
+    [onUploadSuccess, turnstileToken, verified],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -124,7 +138,7 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
     accept: {
       "image/*": [],
     },
-    disabled: uploading || !turnstileToken,
+    disabled: uploading || !canUpload,
   });
 
   if (!TURNSTILE_SITE_KEY) {
@@ -139,30 +153,32 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-center">
-        <Turnstile
-          ref={turnstileRef}
-          siteKey={TURNSTILE_SITE_KEY}
-          onSuccess={setTurnstileToken}
-          onError={() =>
-            toast.error("CAPTCHA challenge failed. Please try again.")
-          }
-          onExpire={() => {
-            toast.warn("CAPTCHA challenge expired. Please complete it again.");
-            setTurnstileToken(null);
-          }}
-          options={{
-            theme: "light",
-          }}
-        />
-      </div>
+      {!verified && (
+        <div className="mb-4 flex justify-center">
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={TURNSTILE_SITE_KEY}
+            onSuccess={setTurnstileToken}
+            onError={() =>
+              toast.error("CAPTCHA challenge failed. Please try again.")
+            }
+            onExpire={() => {
+              toast.warn("CAPTCHA challenge expired. Please complete it again.");
+              setTurnstileToken(null);
+            }}
+            options={{
+              theme: "light",
+            }}
+          />
+        </div>
+      )}
 
       <div
         {...getRootProps()}
         className={`dropzone w-full p-8 border-2 border-dashed rounded-lg transition-colors ${
           isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
         } ${
-          uploading || !turnstileToken
+          uploading || !canUpload
             ? "opacity-50 cursor-not-allowed"
             : "cursor-pointer hover:border-blue-300 hover:bg-blue-50"
         }`}
@@ -189,7 +205,7 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
         ) : (
           <div className="text-center">
             <p className="text-gray-500">
-              {turnstileToken
+              {canUpload
                 ? "Drag & drop images here, or click to select files"
                 : "Complete the CAPTCHA above to enable upload"}
             </p>
