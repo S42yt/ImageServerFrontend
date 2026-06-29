@@ -3,10 +3,11 @@ import crypto from "crypto";
 import fs from "fs";
 import * as db from "./db";
 
-const API_URL =
+const API_URL = (
   process.env.API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5200";
+  "http://localhost:5200"
+).replace(/\/+$/, "");
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const VIEW_COUNTS_FILE = path.join(DATA_DIR, "view-counts.json");

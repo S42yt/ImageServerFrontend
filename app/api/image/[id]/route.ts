@@ -13,7 +13,7 @@ export async function GET(
   const params = await props.params;
   try {
     const imageId = params.id;
-    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL)?.replace(/\/+$/, "");
 
     if (!apiUrl) {
       console.error("API URL not configured");
