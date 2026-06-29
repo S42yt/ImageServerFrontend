@@ -228,6 +228,17 @@ export default function ImageGallery({
     [updateImageViewCount],
   );
 
+  // Close the modal without jumping to the top: clear the hash via
+  // history.replaceState instead of `location.hash = ""` (which scrolls up).
+  const closeModal = useCallback(() => {
+    setSelectedImage(null);
+    history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search,
+    );
+  }, []);
+
   const handleDelete = async (image: ImageItem, e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -246,8 +257,7 @@ export default function ImageGallery({
       toast.success("Image deleted successfully");
 
       if (selectedImage && selectedImage.id === image.id) {
-        setSelectedImage(null);
-        window.location.hash = "";
+        closeModal();
       }
     } catch (error) {
       console.error("Failed to delete image:", error);
@@ -312,7 +322,7 @@ export default function ImageGallery({
       {selectedImage && (
         <ImageModal
           image={selectedImage}
-          onClose={() => { window.location.hash = ""; }}
+          onClose={closeModal}
           onDelete={handleDelete}
           canDelete={canDeleteImage(selectedImage)}
           hasError={!!imageErrors[selectedImage.id]}
