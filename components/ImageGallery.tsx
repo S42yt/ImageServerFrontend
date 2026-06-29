@@ -160,9 +160,41 @@ export default function ImageGallery({
     fetchImages(true);
   }, [refreshTrigger, preloadedImages, fetchImages]);
 
-  // ponytail: 15s poll surfaces other users' uploads; swap for SSE if true realtime is needed
+  // Real-time stream: backend pushes upload/delete events over SSE.
+  // EventSource auto-reconnects on drop.
   useEffect(() => {
-    const id = setInterval(() => fetchImages(false), 15000);
+    const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+    if (!base) return; // no backend URL; fallback poll below handles updates
+    const es = new EventSource(`${base}/events`);
+
+    es.addEventListener("image", (e) => {
+      try {
+        const data = JSON.parse((e as MessageEvent).data) as ImageItem;
+        setImages((prev) => {
+          if (prev.some((img) => img.id === data.id)) return prev;
+          const item = { ...data, url: api.getProxiedImageUrl(data.id) };
+          return api.sortImagesByViewCount([item, ...prev]);
+        });
+      } catch (err) {
+        console.error("Bad SSE image event:", err);
+      }
+    });
+
+    es.addEventListener("delete", (e) => {
+      try {
+        const { id } = JSON.parse((e as MessageEvent).data);
+        setImages((prev) => prev.filter((img) => img.id !== id));
+      } catch (err) {
+        console.error("Bad SSE delete event:", err);
+      }
+    });
+
+    return () => es.close();
+  }, []);
+
+  // ponytail: 60s fallback poll in case a proxy buffers/blocks the SSE stream
+  useEffect(() => {
+    const id = setInterval(() => fetchImages(false), 60000);
     return () => clearInterval(id);
   }, [fetchImages]);
 
