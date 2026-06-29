@@ -5,6 +5,9 @@ out/
 # Node modules
 node_modules/
 
+# Docker MongoDB data (bind mount)
+mongo-data/
+
 # Environment variables
 .env
 .env.local

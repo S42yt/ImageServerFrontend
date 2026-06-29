@@ -1,8 +1,11 @@
 .next
 node_modules
+.env
 .env.local
 .env.*.local
+mongo-data
 *.md
 .git
 .gitignore
 docker-compose.yml
+Dockerfile
